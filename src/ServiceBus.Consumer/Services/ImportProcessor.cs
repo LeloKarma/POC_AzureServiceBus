@@ -30,19 +30,40 @@ namespace ServiceBus.Consumer.Services
                 throw new InvalidOperationException("Toxic payload format exception. Failed to parse row 127: invalid column layout.");
             }
 
-            // 2. Simulate file processing time based on import type
-            int delayMs = command.ImportType switch
-            {
-                "Country" => 1000,
-                "Port" => 2000,
-                "Vessel" => 3000,
-                _ => 1500
-            };
-
-            await Task.Delay(delayMs, cancellationToken);
-
-            // 3. Calculate simulated row count based on file size
+            // 2. Calculate simulated row count based on file size
             int totalRows = command.FileSizeBytes > 0 ? (int)(command.FileSizeBytes / 50) : 100;
+            _logger.LogInformation("[Processor] Processing {RowCount} rows in parallel", totalRows);
+
+            // 3. Process rows in parallel (simulate concurrent row processing)
+            int batchSize = Math.Min(10, totalRows); // Process up to 10 rows at a time
+            int batches = (int)Math.Ceiling((double)totalRows / batchSize);
+            
+            _logger.LogInformation("[Processor] Processing in {BatchCount} batches of {BatchSize} rows each", batches, batchSize);
+
+            for (int batch = 0; batch < batches; batch++)
+            {
+                int rowsInThisBatch = Math.Min(batchSize, totalRows - (batch * batchSize));
+                int rowsProcessedSoFar = batch * batchSize;
+                double progressPercentage = ((double)rowsProcessedSoFar / totalRows) * 100;
+                
+                _logger.LogInformation("[Processor] Progress: {ProgressPercent}% ({RowsProcessed}/{TotalRows} rows) - Starting batch {BatchNumber}/{TotalBatches}", 
+                    progressPercentage.ToString("F1"), rowsProcessedSoFar, totalRows, batch + 1, batches);
+                
+                // Simulate parallel processing of rows in this batch
+                var tasks = new Task[rowsInThisBatch];
+                for (int i = 0; i < rowsInThisBatch; i++)
+                {
+                    tasks[i] = ProcessRowAsync(command.ImportType, cancellationToken);
+                }
+                
+                await Task.WhenAll(tasks);
+                
+                rowsProcessedSoFar += rowsInThisBatch;
+                progressPercentage = ((double)rowsProcessedSoFar / totalRows) * 100;
+                
+                _logger.LogInformation("[Processor] Progress: {ProgressPercent}% ({RowsProcessed}/{TotalRows} rows) - Completed batch {BatchNumber}/{TotalBatches}", 
+                    progressPercentage.ToString("F1"), rowsProcessedSoFar, totalRows, batch + 1, batches);
+            }
 
             stopwatch.Stop();
             _logger.LogInformation("[Processor] Successfully finished processing job: {CommandId} in {ElapsedMs}ms. Processed {RowCount} rows.",
@@ -59,6 +80,20 @@ namespace ServiceBus.Consumer.Services
                 CompletedAt = DateTime.UtcNow,
                 Duration = stopwatch.Elapsed
             };
+        }
+
+        private async Task ProcessRowAsync(string importType, CancellationToken cancellationToken)
+        {
+            // Simulate processing time per row based on import type
+            int delayMs = importType switch
+            {
+                "Country" => 10,
+                "Port" => 15,
+                "Vessel" => 20,
+                _ => 12
+            };
+
+            await Task.Delay(delayMs, cancellationToken);
         }
     }
 }

@@ -57,8 +57,8 @@ namespace ServiceBus.Consumer.Workers
                 var completedEvent = JsonSerializer.Deserialize<ImportCompletedEvent>(body);
                 if (completedEvent != null)
                 {
-                    _logger.LogInformation("🔍 [AuditSub] AUDIT TRAIL LOG: Job {CommandId} (Type: {ImportType}) finalized with Status: {Status}.",
-                        completedEvent.CommandId, completedEvent.ImportType, completedEvent.Status);
+                    _logger.LogInformation("🔍 [AuditSub] AUDIT TRAIL LOG: Job {CommandId} (Type: {ImportType}) finalized with Status: {Status}. Rows: {RowCount}, Duration: {DurationMs}ms, Retries: {RetryCount}, CompletedAt: {CompletedAt}",
+                        completedEvent.CommandId, completedEvent.ImportType, completedEvent.Status, completedEvent.TotalRowsProcessed, completedEvent.Duration.TotalMilliseconds, completedEvent.RetryCount, completedEvent.CompletedAt);
                 }
             }
             catch (Exception ex)

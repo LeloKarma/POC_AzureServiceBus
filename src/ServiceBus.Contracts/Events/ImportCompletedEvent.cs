@@ -12,5 +12,6 @@ namespace ServiceBus.Contracts.Events
         public string? ErrorMessage { get; init; }
         public DateTime CompletedAt { get; init; } = DateTime.UtcNow;
         public TimeSpan Duration { get; init; }
+        public int RetryCount { get; init; } = 0; // Track retry attempts
     }
 }

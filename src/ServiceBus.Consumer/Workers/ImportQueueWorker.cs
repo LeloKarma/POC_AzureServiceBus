@@ -94,17 +94,30 @@ namespace ServiceBus.Consumer.Workers
                 // Process the import
                 ImportCompletedEvent completedEvent = await processor.ProcessImportAsync(command, args.CancellationToken);
 
+                // Add retry count to the event
+                completedEvent = completedEvent with { RetryCount = args.Message.DeliveryCount };
+
                 // Publish completed event to the topic
                 await PublishCompletedEventAsync(completedEvent);
 
                 // Successfully processed - complete the message to remove it from the queue
-                _logger.LogInformation("[QueueWorker] Completing message ID: {MessageId}", args.Message.MessageId);
+                _logger.LogInformation("[QueueWorker] Completing message ID: {MessageId} (Retries: {RetryCount})", 
+                    args.Message.MessageId, args.Message.DeliveryCount);
                 await args.CompleteMessageAsync(args.Message);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[QueueWorker] Error processing message {MessageId} (Attempt {DeliveryCount}/3)", 
                     args.Message.MessageId, args.Message.DeliveryCount);
+
+                // Implement exponential backoff before retry
+                int delayMs = CalculateExponentialBackoff(args.Message.DeliveryCount);
+                if (delayMs > 0)
+                {
+                    _logger.LogInformation("[QueueWorker] Applying exponential backoff: {DelayMs}ms before retry attempt {DeliveryCount}", 
+                        delayMs, args.Message.DeliveryCount + 1);
+                    await Task.Delay(delayMs, args.CancellationToken);
+                }
 
                 // If we have retried 3 times, Service Bus will automatically DLQ it if we abandon it again.
                 // Let's log it clearly so the user sees this flow.
@@ -123,7 +136,8 @@ namespace ServiceBus.Consumer.Workers
                         ErrorCount = 1,
                         ErrorMessage = ex.Message,
                         CompletedAt = DateTime.UtcNow,
-                        Duration = TimeSpan.Zero
+                        Duration = TimeSpan.Zero,
+                        RetryCount = args.Message.DeliveryCount
                     };
                     await PublishCompletedEventAsync(failedEvent);
                 }
@@ -161,6 +175,14 @@ namespace ServiceBus.Consumer.Workers
             _logger.LogError(args.Exception, "[QueueWorker] Error in message source: {ErrorSource}, Namespace: {FullyQualifiedNamespace}", 
                 args.ErrorSource, args.FullyQualifiedNamespace);
             return Task.CompletedTask;
+        }
+
+        private int CalculateExponentialBackoff(int deliveryCount)
+        {
+            // Exponential backoff: 2^deliveryCount seconds, capped at 30 seconds
+            int delaySeconds = (int)Math.Pow(2, deliveryCount);
+            int maxDelaySeconds = 30;
+            return Math.Min(delaySeconds, maxDelaySeconds) * 1000;
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

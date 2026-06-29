@@ -57,8 +57,8 @@ namespace ServiceBus.Consumer.Workers
                 var completedEvent = JsonSerializer.Deserialize<ImportCompletedEvent>(body);
                 if (completedEvent != null)
                 {
-                    _logger.LogInformation("💚 [HistorySub] LOGGED HISTORY: Import {CommandId} (Type: {ImportType}) successfully imported {RowCount} rows in {DurationMs}ms.",
-                        completedEvent.CommandId, completedEvent.ImportType, completedEvent.TotalRowsProcessed, completedEvent.Duration.TotalMilliseconds);
+                    _logger.LogInformation("💚 [HistorySub] LOGGED HISTORY: Import {CommandId} (Type: {ImportType}) successfully imported {RowCount} rows in {DurationMs}ms. Retries: {RetryCount}, CompletedAt: {CompletedAt}",
+                        completedEvent.CommandId, completedEvent.ImportType, completedEvent.TotalRowsProcessed, completedEvent.Duration.TotalMilliseconds, completedEvent.RetryCount, completedEvent.CompletedAt);
                 }
             }
             catch (Exception ex)

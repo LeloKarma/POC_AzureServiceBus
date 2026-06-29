@@ -32,6 +32,9 @@ builder.Services.AddSingleton(sp =>
 // Register import processor
 builder.Services.AddTransient<IImportProcessor, ImportProcessor>();
 
+// Register HttpClient for Teams webhook notifications
+builder.Services.AddHttpClient();
+
 // Register workers (Queue + 3 Subscriptions)
 builder.Services.AddHostedService<ImportQueueWorker>();
 builder.Services.AddHostedService<HistorySubscriptionWorker>();
