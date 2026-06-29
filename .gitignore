@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Sensitive config files
+appsettings.Development.json
+appsettings.json
+
+# VS / IDE
+.vs/
+.vscode/

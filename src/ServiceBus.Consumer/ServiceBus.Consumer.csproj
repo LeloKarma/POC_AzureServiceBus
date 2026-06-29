@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ServiceBus.Consumer-e0d71ef8-63cc-4b28-86c7-75aae1c00129</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.5" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.19.0" />
+    <PackageReference Include="EPPlus" Version="7.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceBus.Contracts\ServiceBus.Contracts.csproj" />
+  </ItemGroup>
+</Project>

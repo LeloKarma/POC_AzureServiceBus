@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ServiceBus.Consumer/ServiceBus.Consumer.csproj" />
+    <Project Path="src/ServiceBus.Contracts/ServiceBus.Contracts.csproj" />
+    <Project Path="src/ServiceBus.Infrastructure/ServiceBus.Infrastructure.csproj" />
+    <Project Path="src/ServiceBus.Producer/ServiceBus.Producer.csproj" />
+  </Folder>
+</Solution>
