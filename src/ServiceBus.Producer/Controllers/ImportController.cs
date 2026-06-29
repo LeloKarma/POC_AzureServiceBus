@@ -136,7 +136,7 @@ namespace ServiceBus.Producer.Controllers
             {
                 ImportType = request.ImportType,
                 FileName = request.FileName,
-                BlobReference = request.BlobUrl, // Optional for testing
+                BlobReference = null,
                 FileSizeBytes = request.FileSizeBytes,
                 RequestedBy = request.UserId
             };
