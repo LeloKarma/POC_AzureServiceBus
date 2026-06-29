@@ -58,9 +58,10 @@ namespace ServiceBus.Producer.Controllers
             }
 
             // Custom validation rules per import type
+            // For Country, allow files with no label/structure to enable retry and DLQ testing
             var (minSize, maxSize) = importType.ToUpperInvariant() switch
             {
-                "COUNTRY" => (100, 10 * 1024 * 1024), // 100 bytes to 10MB
+                "COUNTRY" => (0, MaxFileSizeBytes), // No restrictions - allow any file for retry/DLQ testing
                 "PORT" => (500, 20 * 1024 * 1024),    // 500 bytes to 20MB
                 "VESSEL" => (1000, 50 * 1024 * 1024), // 1KB to 50MB
                 "FAIL_TRIGGER" => (0, long.MaxValue), // No restrictions for testing
@@ -130,7 +131,8 @@ namespace ServiceBus.Producer.Controllers
                         FileName = file.FileName,
                         CommandId = command.CommandId,
                         Status = "Pending",
-                        FileSize = file.Length
+                        FileSize = file.Length,
+                        Error = (string?)null
                     });
 
                     _logger.LogInformation("[UploadMultiple] Successfully enqueued file: {FileName}, CommandId: {CommandId}", 
