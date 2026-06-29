@@ -18,24 +18,75 @@ namespace ServiceBus.Producer.Controllers
         private readonly IServiceBusPublisher _publisher;
         private readonly ServiceBusClient _client;
         private readonly string _queueName;
-        private readonly IBlobStorageService _blobStorageService;
 
         public ImportController(
             IServiceBusPublisher publisher,
             ServiceBusClient client,
-            IConfiguration configuration,
-            IBlobStorageService blobStorageService)
+            IConfiguration configuration)
         {
             _publisher = publisher;
             _client = client;
             _queueName = configuration["ServiceBus:QueueName"] ?? "masterdata-import-queue";
-            _blobStorageService = blobStorageService;
         }
 
-        public record ImportRequest(string ImportType, string FileName, string? BlobUrl, long FileSizeBytes, int UserId);
+        public record ImportRequest(string ImportType, string FileName, long FileSizeBytes, int UserId);
 
         /// <summary>
-        /// Upload a file and trigger import via Service Bus Queue.
+        /// Upload multiple files and trigger imports via Service Bus Queue.
+        /// </summary>
+        [HttpPost("upload-multiple")]
+        [ProducesResponseType(StatusCodes.Status202Accepted)]
+        public async Task<IActionResult> UploadMultiple([FromQuery] string importType, [FromQuery] int userId, IFormFileCollection files)
+        {
+            if (files == null || files.Count == 0)
+            {
+                return BadRequest("No files uploaded.");
+            }
+
+            var results = new List<object>();
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    var command = new ImportMasterDataCommand
+                    {
+                        ImportType = importType,
+                        FileName = file.FileName,
+                        BlobReference = null,
+                        FileSizeBytes = file.Length,
+                        RequestedBy = userId
+                    };
+
+                    await _publisher.SendCommandAsync(command);
+
+                    results.Add(new
+                    {
+                        FileName = file.FileName,
+                        CommandId = command.CommandId,
+                        Status = "Pending",
+                        FileSize = file.Length
+                    });
+                }
+                catch (Exception ex)
+                {
+                    results.Add(new
+                    {
+                        FileName = file.FileName,
+                        Error = ex.Message
+                    });
+                }
+            }
+
+            return Accepted(new
+            {
+                Message = $"Enqueued {results.Count} import commands.",
+                Results = results
+            });
+        }
+
+        /// <summary>
+        /// Upload a single file and trigger import via Service Bus Queue.
         /// </summary>
         [HttpPost("upload")]
         [ProducesResponseType(StatusCodes.Status202Accepted)]
@@ -48,25 +99,11 @@ namespace ServiceBus.Producer.Controllers
 
             try
             {
-                string? blobUrl = null;
-
-                // Try to upload to blob storage if available
-                try
-                {
-                    blobUrl = await _blobStorageService.UploadFileAsync(file.FileName, file.OpenReadStream(), file.ContentType);
-                }
-                catch (Exception blobEx)
-                {
-                    // If blob storage fails, continue without it (fallback mode)
-                    Console.WriteLine($"[Warning] Blob storage upload failed: {blobEx.Message}. Continuing without blob storage.");
-                }
-
-                // Create and send command
                 var command = new ImportMasterDataCommand
                 {
                     ImportType = importType,
                     FileName = file.FileName,
-                    BlobReference = blobUrl, // Will be null if blob storage is not available
+                    BlobReference = null,
                     FileSizeBytes = file.Length,
                     RequestedBy = userId
                 };
@@ -77,10 +114,8 @@ namespace ServiceBus.Producer.Controllers
                 {
                     CommandId = command.CommandId,
                     Status = "Pending",
-                    Message = blobUrl != null 
-                        ? "File uploaded to blob storage and import command enqueued." 
-                        : "Import command enqueued (blob storage not available, using simulation mode).",
-                    BlobUrl = blobUrl,
+                    Message = "Import command enqueued.",
+                    FileName = file.FileName,
                     FileSize = file.Length
                 });
             }

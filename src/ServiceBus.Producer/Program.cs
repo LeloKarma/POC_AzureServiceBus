@@ -46,9 +46,6 @@ builder.Services.AddSingleton(sp =>
 // Register publisher
 builder.Services.AddSingleton<IServiceBusPublisher, ServiceBusPublisher>();
 
-// Register blob storage service
-builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

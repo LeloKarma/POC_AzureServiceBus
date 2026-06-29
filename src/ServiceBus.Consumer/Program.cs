@@ -32,9 +32,6 @@ builder.Services.AddSingleton(sp =>
 // Register import processor
 builder.Services.AddTransient<IImportProcessor, ImportProcessor>();
 
-// Register blob storage service
-builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
-
 // Register workers (Queue + 3 Subscriptions)
 builder.Services.AddHostedService<ImportQueueWorker>();
 builder.Services.AddHostedService<HistorySubscriptionWorker>();
